@@ -36,7 +36,7 @@ DeceptiveTrap::DeceptiveTrap(Configuration& config)
 // Score a trap
 int DeceptiveTrap::evaluate(size_t subfunction, const vector<bool> & solution) {
   size_t partial = 0;
-  for (auto index : epistasis_[subfunction]) {
+  for (const auto& index : epistasis_[subfunction]) {
     partial += solution[index];
   }
 

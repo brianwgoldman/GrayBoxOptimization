@@ -9,15 +9,13 @@ using namespace std;
 
 Pyramid::Pyramid(Random& _rand, Configuration& _config,
                  ImprovementHarness& _harness)
-    : Optimizer(_rand, _config, _harness),
-      sfx_options(harness.epistasis().size()) {
-  iota(sfx_options.begin(), sfx_options.end(), 0);
+    : Optimizer(_rand, _config, _harness) {
 }
 
 // Construct a collection of subsets (blocks) by generating
 // random induced subgraphs. There are 2*N-2 of these subgraphs
 // and the sum of their sizes is O(N log N)
-void Pyramid::cis_tree(vector<vector<size_t>> & blocks) {
+void Pyramid::cis_tree(vector<vector<size_t>> & blocks) const {
   uniform_int_distribution<size_t> get_start(0, length - 1);
   // Initial sizes are the full size split into two random parts
   vector<size_t> sizes(2);

@@ -19,9 +19,8 @@ using std::unordered_set;
 class Pyramid : public Optimizer {
   vector<vector<vector<bool>>> solutions;
   unordered_set<vector<bool>> seen;
-  vector<size_t> sfx_options;
   vector<vector<size_t>> selector_tool;
-  void cis_tree(vector<vector<size_t>> & blocks);
+  void cis_tree(vector<vector<size_t>> & blocks) const;
   void add_if_unique(const vector<bool>& candidate, size_t level);
 public:
   Pyramid(Random& _rand, Configuration& _config, ImprovementHarness& _harness);

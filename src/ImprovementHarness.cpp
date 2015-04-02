@@ -20,7 +20,7 @@ ImprovementHarness::ImprovementHarness(shared_ptr<GrayBox> evaluator_,
   const auto& subfunctions = evaluator->epistasis();
 
   // Efficiency tool for converting a bit to the subfunctions it participates in
-  unordered_map<size_t, vector<size_t>> bit_to_sub;
+  vector<vector<size_t>> bit_to_sub(evaluator->length());
   for (size_t sub = 0; sub < subfunctions.size(); sub++) {
     for (const auto& bit : subfunctions[sub]) {
       bit_to_sub[bit].push_back(sub);
@@ -58,11 +58,12 @@ int ImprovementHarness::attach(vector<bool>* solution_) {
   fitness = 0;
   // fill delta with 0s
   delta.assign(delta.size(), 0);
-  for (size_t sub = 0; sub < evaluator->epistasis().size(); sub++) {
+  const size_t number_of_subs = evaluator->epistasis().size();
+  for (size_t sub = 0; sub < number_of_subs; sub++) {
     auto score = evaluator->evaluate(sub, *solution);
     fitness += score;
     // Update the effect each move has on this subfunction
-    for (auto move : sub_to_move[sub]) {
+    for (const auto& move : sub_to_move[sub]) {
       delta[move] -= score;
       flip_move(move);
       delta[move] += evaluator->evaluate(sub, *solution);
@@ -83,17 +84,17 @@ int ImprovementHarness::optimize(Random & rand) {
   while (improvement_found) {
     improvement_found = false;
     // scan improvements until a step size has an improving move
-    for (size_t step_size = 0;
-        step_size < improvements.size() and not improvement_found;
-        step_size++) {
-      // scan potential improvements until an actual improving move is found
-      while (improvements[step_size].size() and not improvement_found) {
-        auto move = improvements[step_size].random(rand);
+    for (auto & potential : improvements) {
+      while (potential.size() and not improvement_found) {
+        auto move = potential.random(rand);
         if (0 < delta[move]) {
           make_move(move);  // Put in move
           improvement_found = true;
         }
-        improvements[step_size].turn_off(move);
+        potential.turn_off(move);
+      }
+      if (improvement_found) {
+        break;
       }
     }
   }
@@ -131,23 +132,21 @@ int ImprovementHarness::make_move(size_t move) {
   fitness += delta[move];
   recording.record(fitness);
   // For each subfunction effected by this move
-  for (auto sub : move_to_sub[move]) {
+  for (const auto& sub : move_to_sub[move]) {
     auto pre_move = evaluator->evaluate(sub, *solution);
     flip_move(move);  // Put in move
     auto just_move = evaluator->evaluate(sub, *solution);
     flip_move(move);  // Take out move
     // for each move that overlaps the effected subfunction
-    for (auto next : sub_to_move[sub]) {
+    for (const auto& next : sub_to_move[sub]) {
       flip_move(next);  // Put in next
       auto just_next = evaluator->evaluate(sub, *solution);
       flip_move(move);  // Put in move
       auto move_next = evaluator->evaluate(sub, *solution);
       flip_move(move);  // Take out move
       flip_move(next);  // Take out next
-      // Check point the delta if it hasn't been yet
-      if (saved_delta.count(next) == 0) {
-        saved_delta[next] = delta[next];
-      }
+      // Check point the delta if it hasn't been added already
+      saved_delta.insert({next, delta[next]});
       // Take out old information and add in new information
       delta[next] += (pre_move - just_next + move_next - just_move);
       // turn the move on

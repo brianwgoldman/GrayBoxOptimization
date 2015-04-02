@@ -7,6 +7,9 @@
 #include <iostream>
 using namespace std;
 
+// Static initialization of cluster building scratch space
+vector<vector<float> > Population::distances = vector<vector<float>>();
+
 Population::Population(Configuration& config) {
   length = config.get<int>("length");
   // initializes clusters to have the maximium possible number of spaces
@@ -20,28 +23,28 @@ Population::Population(Configuration& config) {
   for (size_t i = 0; i < cluster_ordering.size(); i++) {
     cluster_ordering[i] = i;
   }
+
+  // Set up the storage tables needed for model building
+  distances.resize(clusters.size(), vector<float>(clusters.size(), -1));
+  occurrences.resize(length, vector<array<int, 4>>(length));
 }
 
 // Puts the solution into the population, updates the entropy table as requested
-void Population::add(const vector<bool> & solution, bool use_in_tree) {
+void Population::add(const vector<bool> & solution) {
   solutions.push_back(solution);
-  if (not use_in_tree) {
-    return;
-  }
 
   // loop through all pairs of genes and update the pairwise counts / entropy
-  for (size_t i = 0; i < solution.size() - 1; i++) {
-    for (size_t j = i + 1; j < solution.size(); j++) {
+  for (size_t i = 0; i < length - 1; i++) {
+    for (size_t j = i + 1; j < length; j++) {
       auto& entry = occurrences[i][j];
       // Updates the entry of the 4 long array based on the two bits
       entry[(solution[j] << 1) + solution[i]]++;
-      update_entropy(i, j, entry);
     }
   }
 }
 
 // Records the actual pairwise distance based of the two genes based on the counts
-void Population::update_entropy(int i, int j, const array<int, 4>& entry) {
+float Population::get_distance(const array<int, 4>& entry) const {
   array<int, 4> bits;
   // extracts the occurrences of the individual bits
   bits[0] = entry[0] + entry[2];  // i zero
@@ -50,24 +53,24 @@ void Population::update_entropy(int i, int j, const array<int, 4>& entry) {
   bits[3] = entry[2] + entry[3];  // j one
   float total = bits[0] + bits[1];
   // entropy of the two bits on their own
-  float separate = neg_entropy(bits, total);
+  float separate = entropy(bits, total);
   // entropy of the two bits as a single unit
-  float together = neg_entropy(entry, total);
+  float together = entropy(entry, total);
 
   // If together there is 0 entropy, the distance is zero
   float ratio = 0;
   if (together) {
     ratio = 2 - (separate / together);
   }
-  pairwise_distance[i][j] = ratio;
+  return ratio;
 }
 
 // Wrapper to ensure that x < y when accessing the pairwise_distance table
-float Population::get_distance(int x, int y) {
+float Population::get_distance(int x, int y) const {
   if (x > y) {
     std::swap(x, y);
   }
-  return pairwise_distance[x][y];
+  return get_distance(occurrences[x][y]);
 }
 
 // Uses the entropy table to construct the clusters to use for crossover.
@@ -83,10 +86,6 @@ void Population::rebuild_tree(Random& rand) {
   vector<bool> useful(clusters.size(), true);
   // Shuffle the single variable clusters
   shuffle(clusters.begin(), clusters.begin() + length, rand);
-
-  // keeps track of the distances between clusters
-  vector<vector<float> > distances(clusters.size(),
-                                   vector<float>(clusters.size(), -1));
 
   // Find the initial distances between the clusters
   for (size_t i = 0; i < length - 1; i++) {
@@ -146,7 +145,7 @@ void Population::rebuild_tree(Random& rand) {
     // If the distance between the joining clusters is zero, remove them
     // (zero is anything less than 4 epsilon)
     if (distances[first][second]
-        <= std::numeric_limits<double>::epsilon() * 4) {
+        <= std::numeric_limits<float>::epsilon() * 4) {
       useful[first] = false;
       useful[second] = false;
     }
@@ -214,7 +213,7 @@ void Population::rebuild_tree(Random& rand) {
 // true if an evaluation was performed.
 bool Population::donate(vector<bool> & solution, int & fitness,
                         vector<bool> & source, const vector<int> & cluster,
-                        ImprovementHarness& evaluator) {
+                        ImprovementHarness& evaluator) const {
   // swap all of the cluster indices, watching for any change
   bool changed = false;
   for (const auto& index : cluster) {
@@ -281,10 +280,26 @@ void Population::improve(Random& rand, vector<bool> & solution, int & fitness,
 void Population::smallest_first(Random& rand,
                                 const vector<vector<int>>& clusters,
                                 vector<int>& cluster_ordering) {
-  // NOTE: My previous work did not shuffle here
+  // Shuffle ordering to break ties randomly
   std::shuffle(cluster_ordering.begin(), cluster_ordering.end(), rand);
-  std::stable_sort(
-      cluster_ordering.begin(),
-      cluster_ordering.end(),
-      [clusters](int x, int y) {return clusters[x].size() < clusters[y].size();});
+  // Determine how many bins are needed for bin sort
+  size_t bin_count = 0;
+  for (const auto& index : cluster_ordering) {
+    bin_count = max(bin_count, clusters[index].size());
+  }
+  vector<vector<int>> bins(bin_count + 1);
+
+  // put each cluster index into a bin based on the cluster's size
+  for (const auto& index : cluster_ordering) {
+    bins[clusters[index].size()].push_back(index);
+  }
+
+  // extract cluster indices from the bins.
+  size_t working=0;
+  for (const auto& bin : bins) {
+    for (const auto& index : bin) {
+      cluster_ordering[working] = index;
+      working++;
+    }
+  }
 }

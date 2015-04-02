@@ -26,4 +26,20 @@ void print(const vector<bool> & vect, std::ostream & out = std::cout);
 // Read in a vector from a stream.
 void read(vector<bool> & vect, std::istream & in = std::cin);
 
+// Returns the entropy given the list of counts and a total number,
+// where total = sum(counts)
+template<size_t T>
+float entropy(const std::array<int, T>& counts, const float& total) {
+  float sum = 0;
+  float p;
+  for (const auto& value : counts) {
+    if (value) {
+      p = value / total;
+      sum -= (p * log(p));
+    }
+  }
+  return sum;
+}
+
+
 #endif /* UTIL_H_ */

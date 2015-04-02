@@ -14,14 +14,14 @@ using std::unordered_set;
 
 // Constructs a sparse graph from the epistasis tables of the evaluator
 void build_graph(shared_ptr<GrayBox> evaluator,
-                 unordered_map<size_t, unordered_set<size_t>> & graph);
+                 vector<unordered_set<size_t>> & graph);
 
 // Finds all connected induced subgraphs with "radius" or less vertices.
 vector<vector<size_t>> k_order_subgraphs(
-    const unordered_map<size_t, unordered_set<size_t>>& graph, size_t radius);
+    const vector<unordered_set<size_t>>& graph, size_t radius);
 
 // Recursive function used internally by k_order_subgraphs.
-void recurse(const unordered_map<size_t, unordered_set<size_t>>& graph,
+void recurse(const vector<unordered_set<size_t>>& graph,
              size_t v, unordered_set<size_t> & closed, vector<size_t> & prev,
              unordered_set<size_t> & prevopen, size_t radius,
              vector<vector<size_t>> & found);
@@ -29,6 +29,6 @@ void recurse(const unordered_map<size_t, unordered_set<size_t>>& graph,
 // Find a random induced subgraph which contains "start" and has "k" vertices.
 // Used by Gray Box P3's crossover operator
 unordered_set<size_t> random_induced_subgraph(
-    const unordered_map<size_t, unordered_set<size_t>> & graph, size_t start,
+    const vector<unordered_set<size_t>> & graph, size_t start,
     size_t k, Random& rand);
 #endif /* NEIGHBORHOOD_H_ */

@@ -8,7 +8,9 @@
 // Convert the epistasis of a Gray Box problem into an adjacency list
 // representation of a graph
 void build_graph(shared_ptr<GrayBox> evaluator,
-                 unordered_map<size_t, unordered_set<size_t>> & graph) {
+                 vector<unordered_set<size_t>> & graph) {
+  graph.clear();
+  graph.resize(evaluator->length());
   const auto& subfunctions = evaluator->epistasis();
   for (auto subfunction : subfunctions) {
     for (auto x : subfunction) {
@@ -23,23 +25,23 @@ void build_graph(shared_ptr<GrayBox> evaluator,
 
 // Finds all possible connected induced subgraphs with k or less vertices
 vector<vector<size_t>> k_order_subgraphs(
-    const unordered_map<size_t, unordered_set<size_t>>& graph, size_t radius) {
+    const vector<unordered_set<size_t>>& graph, size_t radius) {
   // The list of all subgraphs found so far.
   vector<vector<size_t>> found;
   unordered_set<size_t> closed, prevopen;
   // Vertices already in the set, initially empty
   vector<size_t> prev;
   // Call the recursive function starting at each vertex
-  for (const auto& kv : graph) {
-    closed.insert(kv.first);
-    recurse(graph, kv.first, closed, prev, prevopen, radius, found);
+  for (size_t v=0; v < graph.size(); v++) {
+    closed.insert(v);
+    recurse(graph, v, closed, prev, prevopen, radius, found);
   }
   return found;
 }
 
 // Recursive function used by k_order_subgraphs to expand each subset by "v"
 // and then find all possible subgraphs which contain "prev" and "v"
-void recurse(const unordered_map<size_t, unordered_set<size_t>>& graph,
+void recurse(const vector<unordered_set<size_t>>& graph,
              size_t v, unordered_set<size_t> & closed, vector<size_t> & prev,
              unordered_set<size_t> & prevopen, size_t radius,
              vector<vector<size_t>> & found) {
@@ -74,7 +76,7 @@ void recurse(const unordered_map<size_t, unordered_set<size_t>>& graph,
 // such that "start" is in the graph. Vertices are added at random biased by
 // how many different edges connect them to the current subgraph.
 unordered_set<size_t> random_induced_subgraph(
-    const unordered_map<size_t, unordered_set<size_t>> & graph, size_t start,
+    const vector<unordered_set<size_t>> & graph, size_t start,
     size_t k, Random& rand) {
   // The subgraph
   unordered_set<size_t> subset;

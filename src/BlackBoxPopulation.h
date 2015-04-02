@@ -28,12 +28,9 @@ class Population {
  public:
   Population(Configuration& config);
   virtual ~Population() = default;
-  // Storage for all of the solutions in the population
-  vector<vector<bool> > solutions;
 
-  // Adds a solution to the population.  Optional argument to prevent
-  // the solution from being used in entropy calculations
-  void add(const vector<bool> & solution, bool use_in_tree = true);
+  // Adds a solution to the population.
+  void add(const vector<bool> & solution);
   // Improves the passed in solution using crossover, as guided by the
   // entropy table and solutions in the population.  "fitness" should
   // start as the fitness of "solution", and both will be set to the
@@ -44,36 +41,31 @@ class Population {
   void rebuild_tree(Random& rand);
 
  private:
+  // Storage for all of the solutions in the population
+  vector<vector<bool> > solutions;
+
   // Tools used for cluster creation
   vector<vector<int> > clusters;
   vector<int> cluster_ordering;
 
   // Keeps track of how often each possible pairing of bit values occurs in the population
   // for all pairs of genes
-  unordered_map<int, unordered_map<int, array<int, 4>>> occurrences;
-  // Tracks the entropy distance between pairs of genes
-  unordered_map<int, unordered_map<int, float> > pairwise_distance;
+  vector<vector<array<int, 4>>> occurrences;
+  // Scratch space for the entropy distance between clusters
+  static vector<vector<float> > distances;
 
-  // Tool used to calculate the negative entropy of a list of occurrences
-  template <size_t T>
-  float neg_entropy(const array<int, T>& counts, const float& total);
-
-  // Given a list of occurrences, updates the pairwise_distance for the
-  // related genes
-  void update_entropy(int i, int j, const array<int, 4>& entry);
+  // Given a list of occurrences, return the pairwise_distance
+  float get_distance(const array<int, 4>& entry) const;
 
   // tool to access pairwise distance for two genes
-  float get_distance(int x, int y);
+  float get_distance(int x, int y) const;
 
   // Donates the genes specified by "cluster" from "source" into "solution".
   // If the solution was modified by this action, it is evaluated.  If the new
   // fitness is no worse the modification is kept and the fitness value is updated.
   // Returns true if an evaluation was performed.
   bool donate(vector<bool> & solution, int & fitness, vector<bool> & source,
-      const vector<int> & cluster, ImprovementHarness& evaluator);
-
-  // Cluster Ordering Methods - These specify how to take the clusters created by linking and convert
-  // them into an order for application with crossover.
+      const vector<int> & cluster, ImprovementHarness& evaluator) const;
 
   // Sort clusters by size, smallest first.  Randomize order of equal sized clusters
   static void smallest_first(Random& rand, const vector<vector<int>>& clusters, vector<int>& cluster_ordering);
@@ -82,20 +74,5 @@ class Population {
   // Number of genes in the genome
   size_t length;
 };
-
-// Returns the negative of the entropy given the list of counts and a total number,
-// where total = sum(counts)
-template<size_t T>
-float Population::neg_entropy(const array<int, T>& counts, const float& total) {
-  float sum = 0;
-  float p;
-  for (const auto& value : counts) {
-    if (value) {
-      p = value / total;
-      sum += (p * log(p));
-    }
-  }
-  return sum;
-}
 
 #endif /* POPULATION_H_ */

@@ -51,7 +51,7 @@ class ImprovementHarness {
   unordered_set<size_t> flipped;
 
   // The adjacency information in the epistasis graph
-  unordered_map<size_t, unordered_set<size_t>> graph;
+  vector<unordered_set<size_t>> graph;
 
  public:
   ImprovementHarness(shared_ptr<GrayBox> evaluator_, size_t radius,
@@ -94,7 +94,7 @@ class ImprovementHarness {
   }
   // Provides access to the problem's epistasis graph,
   // used by Gray Box P3's crossover operator.
-  const unordered_map<size_t, unordered_set<size_t>>& adjacency() const {
+  const vector<unordered_set<size_t>>& adjacency() const {
     return graph;
   }
 };
