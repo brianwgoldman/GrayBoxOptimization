@@ -24,6 +24,7 @@ with a genome size of 1000, and increasing the amount of information output to t
 
 Also, see main.cpp for implementation related details.
 
-The data used in the paper is available as part of the GBO-using-P3.tar.gz file.
+The data used in the paper is available as part of the
+[GBO-using-P3.tar.gz](https://drive.google.com/open?id=0BwZEhB6mzmkadm5qbUhFZTdXU2M&authuser=0) file.
 All of the graphing and statistical processing scripts are contained in data_parsing/.
 
